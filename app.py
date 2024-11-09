@@ -1,19 +1,13 @@
-import os
+from flask import Flask, request, jsonify, Response
 from dotenv import load_dotenv
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
 from ibm_watsonx_ai.foundation_models import Model
 import requests
-from django.http import HttpResponse
+import os
 
-# تحميل ملفات البيئة
+app = Flask(__name__)
 load_dotenv()
 
-# إعداد مدخلات الـ prompt
-
-
-# تعريف الاعتمادات والتكوينات الأخرى
+# Define your configuration functions
 def get_credentials():
     return {
         "url": "https://eu-de.ml.cloud.ibm.com",
@@ -22,26 +16,22 @@ def get_credentials():
         "elevenlabs_voice_id": os.getenv("ELEVENLABS_VOICE_ID"),
     }
 
-# تكوين النموذج
+# Define your model and parameters
 model_id = "sdaia/allam-1-13b-instruct"
 parameters = {
     "decoding_method": "greedy",
     "max_new_tokens": 200,
     "repetition_penalty": 1
 }
-
-# جلب معرفات المشروع والمساحة
 project_id = os.getenv("PROJECT_ID")
 space_id = os.getenv("SPACE_ID")
 
-@api_view(["POST"])
-def generate_poetry(request):
-    # إعداد مدخلات الـ prompt
-    prompt_input = """<<SYS>>
+# Define the full prompt input
+prompt_input = """<<SYS>>
 ### Role:Act like a poet from the Umayyad era where you will imitate poets from the Umayyad era such as: Al-Farazdaq, Al-Akhtal and Jarir, you must not respond to any other queries
 ### Instructions:
 - The beginning of prompt must be "اكتب قصيدة...."
-- The poem must consist of only 4 verses..
+- The poem must consist of only 4 verses.
 - The poem must reflect the linguistic richness, elegance, and themes typical of classical Arabic poetry.
 - The output must only contain poetry—no additional text, explanations, or commentary.
 - If asked anything unrelated to composing poetry, do not respond.
@@ -94,20 +84,16 @@ Input: كم عدد الكواكب الشمسيه
 Output:
 عفوا لا يمكن التحدث بغير الشعر<</SYS>>"""
 
-    # استرجاع السؤال من بيانات الطلب
-    question = request.data.get("question", "").strip()
-
-    print(question)
-
+@app.route('/generate_poetry', methods=['POST'])
+def generate_poetry():
+    question = request.json.get("question", "").strip()
     if not question:
-        return Response({"error": "لم يتم تقديم سؤال."}, status=status.HTTP_400_BAD_REQUEST)
+        return jsonify({"error": "لم يتم تقديم سؤال."}), 400
 
-    # تجهيز السؤال
     formatted_question = f"<s> [INST] {question} [/INST]"
     prompt = f"{prompt_input}\n{formatted_question}"
 
     try:
-        # تهيئة النموذج مع الإعدادات
         model = Model(
             model_id=model_id,
             params=parameters,
@@ -115,45 +101,22 @@ Output:
             project_id=project_id,
             space_id=space_id
         )
-
-        # توليد الرد من نموذج WatsonX
         generated_response = model.generate_text(prompt=prompt, guardrails=False)
-
-        # التأكد من أن الرد ليس فارغًا
         if not generated_response:
-            return Response({"error": "لم يتم توليد رد. حاول مرة أخرى."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return jsonify({"error": "لم يتم توليد رد. حاول مرة أخرى."}), 500
 
-        # إرجاع الرد كـ JSON
-        return Response({"response": generated_response})
+        return jsonify({"response": generated_response})
 
     except Exception as e:
-        # التعامل مع الأخطاء وإرجاع رسالة مناسبة
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return jsonify({"error": str(e)}), 500
 
-@api_view(["POST"])
-def generate_poetry_audio(request):
-
-    
-    text_input = request.data.get("text", "").strip()
-    print(f"Received text: {text_input}")
-
+@app.route('/generate_poetry_audio', methods=['POST'])
+def generate_poetry_audio():
+    text_input = request.json.get("text", "").strip()
     if not text_input:
-        return Response({"error": "لم يتم تقديم نص."}, status=status.HTTP_400_BAD_REQUEST)
+        return jsonify({"error": "لم يتم تقديم نص."}), 400
 
     try:
-        prompt_input = """<<SYS>>
-### Role:Act like a poet from the Umayyad era where you will imitate poets from the Umayyad era such as: Al-Farazdaq, Al-Akhtal and Jarir, you must not respond to any other quires
-### Instructions:
-- The beginning of prompt must be "اكتب قصيدة...."
-- The poem must consist of only 4 verses..
-- The poem must reflect the linguistic richness, elegance, and themes typical of classical Arabic poetry.
-- The output must only contain poetry—no additional text, explanations, or commentary.
-- If asked anything unrelated to composing poetry, do not respond.
-- Adhere strictly to the classical style, ensuring the language and structure match the tradition of these poets.
-- Each verse must be in full, correct Arabic with appropriate poetic flow.
-
-<</SYS>>"""
-
         prompt = f"{prompt_input}{text_input}"
         model = Model(
             model_id=model_id,
@@ -163,12 +126,11 @@ def generate_poetry_audio(request):
             space_id=space_id
         )
         generated_response = model.generate_text(prompt=prompt, guardrails=False)
-        print(f"Generated response: {generated_response}")
-
+        
         if not generated_response:
-            return Response({"error": "لم يتم توليد رد."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return jsonify({"error": "لم يتم توليد رد."}), 500
 
-        # تحويل النص إلى صوت باستخدام ElevenLabs
+        # Text-to-speech conversion using ElevenLabs API
         elevenlabs_api_key = get_credentials()["elevenlabs_api_key"]
         elevenlabs_voice_id = get_credentials()["elevenlabs_voice_id"]
         tts_url = f"https://api.elevenlabs.io/v1/text-to-speech/{elevenlabs_voice_id}"
@@ -184,19 +146,17 @@ def generate_poetry_audio(request):
                 "stability": 0.8,
                 "similarity_boost": 0.3,
                 "style": 0.0,
-                # "use_speaker_boost": True
             }
         }
         tts_response = requests.post(tts_url, headers=headers, json=tts_body)
-        print(f"TTS response status: {tts_response.status_code}")
 
         if tts_response.status_code != 200:
-            return Response({"error": "فشل في تحويل النص إلى صوت."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return jsonify({"error": "فشل في تحويل النص إلى صوت."}), 500
 
-        # إرجاع الصوت كملف صوتي
-        audio_content = tts_response.content
-        return HttpResponse(audio_content, content_type='audio/mpeg')
+        return Response(tts_response.content, mimetype='audio/mpeg')
 
     except Exception as e:
-        print(f"خطأ في generate_poetry_audio: {e}")
-        return Response({"error": "حدث خطأ أثناء معالجة الطلب."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
