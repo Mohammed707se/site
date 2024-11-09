@@ -7,7 +7,7 @@ import os
 
 app = Flask(__name__)
 load_dotenv()
-CORS(app, resources={r"/*": {"origins": ["https://allam.lisn-car.com/", "http://localhost:65146"]}})
+CORS(app, resources={r"/*": {"origins": ["https://allam.lisn-car.com", "http://localhost:65146"]}})
 
 
 # Define your configuration functions
