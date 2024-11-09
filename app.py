@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, Response
+from flask_cors import CORS
 from dotenv import load_dotenv
 from ibm_watsonx_ai.foundation_models import Model
 import requests
@@ -6,6 +7,8 @@ import os
 
 app = Flask(__name__)
 load_dotenv()
+CORS(app, resources={r"/*": {"origins": ["https://allam.lisn-car.com/", "http://localhost:65146"]}})
+
 
 # Define your configuration functions
 def get_credentials():
