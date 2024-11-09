@@ -41,21 +41,7 @@ prompt_input = """<<SYS>>
 - Adhere strictly to the classical style, ensuring the language and structure match the tradition of these poets.
 - Each verse must be in full, correct Arabic with appropriate poetic flow.
 
-### Example:
-Input: اكتب قصيدة مدح في الخليفة عمر بن عبدالعزيز باسلوب الفرزدق
-Output:
- وما أصابت من الأيام جائحة  
-لأصل إلا وإن جلَّت ستُجتبر  
-وقد حمدتَ بأخلاق خُبرتَ بها  
-وإنما يا ابن ليلى يحمد الخبر  
-سخاوة من ندى مروان أعرفها  
-والطعن للخيل في أكتافها زور  
-ونائل لابن ليلى لو تضمنه  
-سيل الفرات لأمسى وهو محتقر  
-
-Input: كم عدد الكواكب الشمسيه
-Output:
-عفوا لا يمكن التحدث بغير الشعر<</SYS>>"""
+<</SYS>>"""
 
 @app.route('/generate_poetry', methods=['POST'])
 def generate_poetry():
