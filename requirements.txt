@@ -2,5 +2,5 @@ Flask==2.3.2
 python-dotenv==1.0.0
 ibm-watson==6.0.0
 requests==2.31.0
-python-dotenv
+gunicorn==20.1.0
 ibm-watsonx-ai
