@@ -4,3 +4,4 @@ ibm-watson==6.0.0
 requests==2.31.0
 gunicorn==20.1.0
 ibm-watsonx-ai
+django-cors-headers
